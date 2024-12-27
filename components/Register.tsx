@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -11,25 +11,32 @@ export function SignUp() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false); // Loading state
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);  // Start loading
+    setError(''); // Reset previous errors
+
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ username: name, email, password }), // Change 'name' to 'username'
       });
       const data = await res.json();
+
       if (res.ok) {
-        localStorage.setItem('token', data.token);
-        router.push('/');
+        localStorage.setItem('token', data.token); // Store token in localStorage
+        router.push('/'); // Redirect after successful signup
       } else {
-        setError(data.message);
+        setError(data.message || 'Sign up failed. Please try again.');
       }
     } catch (error) {
       setError('An error occurred. Please try again.');
+    } finally {
+      setLoading(false);  // Stop loading
     }
   };
 
@@ -71,16 +78,23 @@ export function SignUp() {
               />
             </div>
           </div>
+
           {error && <p className="text-red-500 mt-2">{error}</p>}
-          <Button className="w-full mt-4" type="submit">Sign Up</Button>
+
+          <Button
+            className="w-full mt-4"
+            type="submit"
+            disabled={loading} // Disable button while loading
+          >
+            {loading ? 'Signing Up...' : 'Sign Up'}
+          </Button>
         </form>
       </CardContent>
       <CardFooter className="flex justify-center">
         <p className="text-sm text-muted-foreground">
-          Already have an account? <a href="/signin" className="text-primary hover:underline">Sign In</a>
+          Already have an account? <a href="/login" className="text-primary hover:underline">Sign In</a>
         </p>
       </CardFooter>
     </Card>
   );
 }
-

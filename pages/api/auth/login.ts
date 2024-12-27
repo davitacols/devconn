@@ -1,6 +1,6 @@
 // pages/api/auth/login.ts
 import { NextApiRequest, NextApiResponse } from 'next';
-import { auth } from '@/lib/firebase';
+import { auth } from '@lib/firebase.config';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import jwt from 'jsonwebtoken';
 

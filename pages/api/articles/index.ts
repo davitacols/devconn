@@ -1,38 +1,73 @@
-// pages/api/articles/index.ts
-import { NextApiRequest, NextApiResponse } from 'next';
-import { store } from '@/lib/store'; // Adjust the path according to your project structure
-import jwt from 'jsonwebtoken';
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { adminAuth } from '@/lib/config/firebase-admin.config';
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method === 'POST') {
-    // Extract token from Authorization header
-    const token = req.headers.authorization?.split(' ')[1];
+interface ArticleResponse {
+  articles?: any[];
+  message?: string;
+}
 
+interface ErrorResponse {
+  error: string;
+  details?: string;
+}
+
+const verifyToken = async (token: string) => {
+  try {
+    return await adminAuth.verifyIdToken(token);
+  } catch (error) {
+    console.error('Token verification failed:', error);
+    throw new Error('Invalid token');
+  }
+};
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse<ArticleResponse | ErrorResponse>
+) {
+  if (!['GET', 'POST'].includes(req.method || '')) {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  try {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader?.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const token = authHeader.split('Bearer ')[1];
+    
     if (!token) {
-      return res.status(401).json({ message: 'Unauthorized' });
+      return res.status(401).json({ error: 'Invalid token format' });
     }
 
-    try {
-      // Verify the token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
+    const decodedToken = await verifyToken(token);
+    const { uid, email } = decodedToken;
 
-      // Extract title and content from request body
-      const { title, content } = req.body;
-
-      // Add the article to the store
-      const article = store.addPost(title, content, decoded.userId);
-
-      // Respond with the created article
-      return res.status(201).json(article);
-    } catch (error) {
-      return res.status(401).json({ message: 'Invalid token' });
+    switch (req.method) {
+      case 'GET':
+        // Your GET logic here
+        return res.status(200).json({ articles: [] });
+      
+      case 'POST':
+        // Your POST logic here with verified user
+        // For demonstration, we're just returning a success message
+        return res.status(201).json({ message: `Article created by user ${uid} with email ${email}` });
+      
+      default:
+        // This should never be reached due to the initial method check
+        return res.status(405).json({ error: 'Method not allowed' });
     }
-  } else if (req.method === 'GET') {
-    // Return all articles
-    const articles = store.getPosts();
-    return res.status(200).json(articles);
-  } else {
-    // Handle other methods (not allowed)
-    return res.status(405).json({ message: 'Method Not Allowed' });
+  } catch (error) {
+    if (error instanceof Error) {
+      return res.status(401).json({ 
+        error: 'Authentication failed',
+        details: error.message 
+      });
+    }
+    console.error('Unexpected error:', error);
+    return res.status(500).json({ 
+      error: 'Internal server error'
+    });
   }
 }

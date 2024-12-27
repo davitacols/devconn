@@ -67,7 +67,7 @@ export function SignIn() {
       </CardContent>
       <CardFooter className="flex justify-center">
         <p className="text-sm text-muted-foreground">
-          Don't have an account? <a href="/signup" className="text-primary hover:underline">Sign Up</a>
+          Don't have an account? <a href="/register" className="text-primary hover:underline">Sign Up</a>
         </p>
       </CardFooter>
     </Card>
